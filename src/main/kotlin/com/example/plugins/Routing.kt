@@ -1,17 +1,24 @@
 package com.example.plugins
 
+import com.example.persistence.User
+import com.example.persistence.Users
+import com.example.persistence.UsersDto
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.features.StatusPages
 import io.ktor.http.HttpStatusCode
-import io.ktor.locations.Location
 import io.ktor.locations.Locations
-import io.ktor.locations.get
+import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.response.respondText
 import io.ktor.routing.get
+import io.ktor.routing.post
 import io.ktor.routing.routing
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.UUID
 
 fun Application.configureRouting() {
     install(Locations) {
@@ -22,15 +29,34 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("Hello World!")
         }
-        get<MyLocation> {
-            call.respondText("Location: name=${it.name}, arg1=${it.arg1}, arg2=${it.arg2}")
+        post("/users") {
+            val userDto = call.receive<UsersDto>()
+            val newId = UUID.randomUUID()
+            transaction {
+                Users.insert {
+                    it[id] = newId
+                    it[age] = userDto.age
+                    it[firstname] = userDto.firstname
+                    it[lastname] = userDto.lastname
+                }
+            }
+            call.respond(status = HttpStatusCode.Created, newId.toString())
         }
-        // Register nested routes
-        get<Type.Edit> {
-            call.respondText("Inside $it")
-        }
-        get<Type.List> {
-            call.respondText("Inside $it")
+        get("/users") {
+            val users: ArrayList<User> = arrayListOf()
+            transaction {
+                Users.selectAll().map {
+                    users.add(
+                        User(
+                            id = it[Users.id].toString(),
+                            firstName = it[Users.firstname],
+                            lastName = it[Users.lastname],
+                            age = it[Users.age]
+                        )
+                    )
+                }
+            }
+            call.respond(users)
         }
         install(StatusPages) {
             exception<AuthenticationException> { cause ->
@@ -42,18 +68,6 @@ fun Application.configureRouting() {
 
         }
     }
-}
-
-@Location("/location/{name}")
-class MyLocation(val name: String, val arg1: Int = 42, val arg2: String = "default")
-
-@Location("/type/{name}")
-data class Type(val name: String) {
-    @Location("/edit")
-    data class Edit(val type: Type)
-
-    @Location("/list/{page}")
-    data class List(val type: Type, val page: Int)
 }
 
 class AuthenticationException : RuntimeException()
