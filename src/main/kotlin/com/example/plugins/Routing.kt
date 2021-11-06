@@ -5,6 +5,7 @@ import com.example.persistence.City
 import com.example.persistence.User
 import com.example.persistence.Users
 import com.example.persistence.UsersDto
+import com.example.services.ImageService
 import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
@@ -66,6 +67,9 @@ fun Application.configureRouting() {
                 }
             }
             call.respond(cities)
+        }
+        get("/image"){
+            call.respond(ImageService.getPhotoLocation())
         }
         install(StatusPages) {
             exception<AuthenticationException> { cause ->
