@@ -1,4 +1,4 @@
 ALTER ROLE postgres CREATEDB SUPERUSER;
-DROP DATABASE IF EXISTS dev_retail_partner_db;
+DROP DATABASE IF EXISTS ktor_example;
 CREATE DATABASE ktor_example;
 GRANT ALL PRIVILEGES ON DATABASE ktor_example TO postgres;
